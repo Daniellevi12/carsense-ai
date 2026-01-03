@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <title>CarSense AI - Pro</title>
-    <script src="edge-impulse-standalone.js"></script>
+    <script src="edge-impulse-standalone.js?v=1"></script>
     <style>
         body {
             background: #0f0f0f;
@@ -97,23 +97,28 @@
 
         // 1. ROBUST INIT FOR GITHUB PAGES
         async function init() {
-            // Check every 100ms if the library is loaded
-            const check = setInterval(async() => {
-                if (typeof EdgeImpulseClassifier !== 'undefined') {
-                    clearInterval(check);
-                    try {
-                        // This looks for 'edge-impulse-standalone.wasm' in the SAME GitHub folder
-                        classifier = new EdgeImpulseClassifier();
-                        await classifier.init();
-                        document.getElementById("status").innerText = "AI Online. Connected.";
-                        connect();
-                    } catch (e) {
-                        document.getElementById("status").innerText = "Error: Missing .wasm file.";
-                        console.error(e);
-                    }
-                }
-            }, 100);
+    const status = document.getElementById("status");
+    
+    const check = setInterval(async () => {
+        if (typeof EdgeImpulseClassifier !== 'undefined') {
+            clearInterval(check);
+            try {
+                // FORCE the classifier to find the .dat file
+                classifier = new EdgeImpulseClassifier();
+                
+                // This line ensures it doesn't look for the old .wasm name
+                classifier.wasmBinaryFile = 'edge-impulse-standalone.wasm.dat'; 
+                
+                await classifier.init();
+                status.innerText = "AI Online. Connected.";
+                connect();
+            } catch (e) {
+                status.innerText = "Error: AI Brain (WASM) blocked.";
+                console.error("WASM Init Error:", e);
+            }
         }
+    }, 200);
+}
 
         // 2. CONNECT TO YOUR ESP32
         function connect() {
@@ -186,5 +191,6 @@
         init();
     </script>
 </body>
+
 
 </html>
