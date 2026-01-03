@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CarSense AI - Pro Diagnostic</title>
-    <script src="edge-impulse-standalone.js?v=2"></script>
+    <script src="edge-impulse-standalone.js?v=5"></script>
     <style>
         body { background: #0f0f0f; color: #e0e0e0; font-family: 'Segoe UI', sans-serif; text-align: center; padding: 20px; }
         .box { background: #1a1a1a; max-width: 450px; margin: auto; padding: 30px; border-radius: 24px; border: 1px solid #333; box-shadow: 0 10px 40px rgba(0,0,0,0.6); }
@@ -13,31 +13,24 @@
         .btn-group { display: flex; justify-content: center; gap: 15px; margin-bottom: 20px; }
         button { flex: 1; padding: 15px; border-radius: 12px; border: none; cursor: pointer; font-weight: bold; font-size: 1em; transition: 0.3s; }
         #start { background: #ff4444; color: white; }
-        #start:hover { background: #ff6666; transform: scale(1.02); }
         #stop { background: #333; color: #aaa; border: 1px solid #444; }
-        #stop:hover { background: #444; color: white; }
         #status { color: #888; font-style: italic; margin-bottom: 10px; display: block; height: 20px; }
         audio { width: 100%; margin-top: 10px; filter: invert(90%) hue-rotate(180deg); }
-        .conf-text { color: #666; font-size: 0.9em; margin-top: 5px; display: block; }
     </style>
 </head>
-
 <body>
     <div class="box">
         <h2 style="margin-top:0;">🚗 CARSENSE AI</h2>
         <span id="status">Waking up AI Brain...</span>
-
         <div class="btn-group">
             <button id="start" onclick="sendCmd('START')">START SESSION</button>
             <button id="stop" onclick="sendCmd('STOP')">STOP</button>
         </div>
-
         <audio id="player" controls crossorigin="anonymous"></audio>
-
         <div class="label-container">
             <span style="font-size: 0.7em; color: #888; letter-spacing: 2px; font-weight: bold;">LIVE DIAGNOSIS</span>
             <span id="resLabel" class="label">STANDBY</span>
-            <span id="resConf" class="conf-text">Confidence: 0%</span>
+            <span id="resConf" style="color: #666; font-size: 0.9em;">Confidence: 0%</span>
         </div>
     </div>
 
@@ -46,109 +39,69 @@
         let ws;
         let audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
-        // 1. BOOT SEQUENCE
         async function init() {
             const statusLabel = document.getElementById("status");
-            
-            // Check for the JS library every 200ms
             const checkLibrary = setInterval(async () => {
                 if (typeof EdgeImpulseClassifier !== 'undefined') {
                     clearInterval(checkLibrary);
-                    console.log("✅ AI Library Loaded");
                     try {
                         classifier = new EdgeImpulseClassifier();
-                        
-                        // THIS IS THE CRITICAL LINE FOR GITHUB PAGES + .DAT FIX
+                        // This forces the library to use the exact filename in your repo
                         classifier.wasmBinaryFile = 'edge-impulse-standalone.wasm.dat';
-                        
                         await classifier.init();
                         statusLabel.innerText = "AI System Online";
                         statusLabel.style.color = "#4caf50";
-                        connect(); // Connect to Render WebSocket
+                        connect();
                     } catch (e) {
-                        statusLabel.innerText = "Error: Brain File (.dat) not found";
-                        console.error("WASM Load Fail:", e);
+                        statusLabel.innerText = "AI Brain Load Failed";
+                        console.error(e);
                     }
                 }
-            }, 200);
+            }, 300);
         }
 
-        // 2. WEBSOCKET CONNECTION
         function connect() {
             ws = new WebSocket("wss://esp32serverproject2.onrender.com/?type=Browser");
-            
-            ws.onopen = () => { console.log("Connected to Render Server"); };
-            
             ws.onmessage = async (e) => {
                 const data = JSON.parse(e.data);
                 if (data.audioData) {
-                    document.getElementById("status").innerText = "Sound detected! Analyzing...";
-                    const player = document.getElementById("player");
-                    player.src = data.audioData;
-                    player.play();
+                    document.getElementById("status").innerText = "Analyzing sound...";
+                    document.getElementById("player").src = data.audioData;
+                    document.getElementById("player").play();
                     analyzeAudio(data.audioData);
                 }
             };
-
-            ws.onclose = () => {
-                document.getElementById("status").innerText = "Server Offline... Reconnecting";
-                setTimeout(connect, 3000);
-            };
+            ws.onclose = () => setTimeout(connect, 3000);
         }
 
-        // 3. AI ANALYSIS
         async function analyzeAudio(url) {
-            if (!classifier || !classifier.properties) return;
-
+            if (!classifier) return;
             try {
                 const response = await fetch(url);
                 const arrayBuffer = await response.arrayBuffer();
                 const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
-                const rawData = audioBuffer.getChannelData(0);
-
-                // Run the classification
-                const result = await classifier.classify(rawData);
+                const result = await classifier.classify(audioBuffer.getChannelData(0));
                 
-                let bestLabel = "Uncertain";
+                let bestLabel = "Normal";
                 let bestScore = 0;
-
                 for (const [label, score] of Object.entries(result.results)) {
                     if (score > bestScore) {
                         bestScore = score;
                         bestLabel = label;
                     }
                 }
-
-                updateUI(bestLabel, bestScore);
-            } catch (err) {
-                console.error("AI Analysis Error:", err);
-            }
-        }
-
-        function updateUI(label, confidence) {
-            const lbl = document.getElementById("resLabel");
-            const conf = document.getElementById("resConf");
-            
-            lbl.innerText = label;
-            // Red for Knocks, Green for everything else
-            lbl.style.color = (label.toLowerCase().includes("knock")) ? "#ff4444" : "#4caf50";
-            conf.innerText = `Confidence: ${(confidence * 100).toFixed(1)}%`;
-            document.getElementById("status").innerText = "Diagnosis Complete.";
+                document.getElementById("resLabel").innerText = bestLabel.toUpperCase();
+                document.getElementById("resLabel").style.color = bestLabel.toLowerCase().includes("knock") ? "#ff4444" : "#4caf50";
+                document.getElementById("resConf").innerText = `Confidence: ${(bestScore * 100).toFixed(1)}%`;
+                document.getElementById("status").innerText = "Analysis Complete.";
+            } catch (err) { console.error(err); }
         }
 
         function sendCmd(cmd) {
-            // Browsers block audio until a user clicks a button
             if (audioCtx.state === 'suspended') audioCtx.resume();
-            
-            if (ws && ws.readyState === 1) {
-                ws.send(cmd);
-                document.getElementById("status").innerText = "Command Sent: " + cmd;
-            } else {
-                alert("Not connected to server. Wait a moment.");
-            }
+            if (ws && ws.readyState === 1) ws.send(cmd);
         }
 
-        // START BOOT
         init();
     </script>
 </body>
