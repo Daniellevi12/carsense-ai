@@ -9,7 +9,7 @@
         WebAssembly.instantiateStreaming = false; 
     </script>
 
-    <script src="edge-impulse-standalone.js?v=10"></script>
+    <script src="edge-impulse-standalone.js?v=15"></script>
     
     <style>
         body { background: #0f0f0f; color: #e0e0e0; font-family: 'Segoe UI', sans-serif; text-align: center; padding: 20px; }
@@ -63,7 +63,7 @@
                         // Force the path to your .dat file
                         classifier.wasmBinaryFile = 'edge-impulse-standalone.wasm.dat';
                         
-                        console.log("⏳ Running classifier.init()...");
+                        console.log("⏳ Running classifier.init(). This may take 5 seconds...");
                         await classifier.init();
                         
                         console.log("✅ AI System Online!");
@@ -82,11 +82,8 @@
         }
 
         function connect() {
-            // Your specific Render server URL
             ws = new WebSocket("wss://esp32serverproject2.onrender.com/?type=Browser");
-            
-            ws.onopen = () => console.log("✅ Connected to Render WebSocket");
-            
+            ws.onopen = () => console.log("✅ Connected to WebSocket");
             ws.onmessage = async (e) => {
                 const data = JSON.parse(e.data);
                 if (data.audioData) {
@@ -96,11 +93,7 @@
                     analyzeAudio(data.audioData);
                 }
             };
-
-            ws.onclose = () => {
-                console.log("❌ Connection lost. Reconnecting...");
-                setTimeout(connect, 3000);
-            };
+            ws.onclose = () => setTimeout(connect, 3000);
         }
 
         async function analyzeAudio(url) {
@@ -120,27 +113,18 @@
                     }
                 }
                 
-                const lbl = document.getElementById("resLabel");
-                lbl.innerText = bestLabel.toUpperCase();
-                lbl.style.color = bestLabel.toLowerCase().includes("knock") ? "#ff4444" : "#4caf50";
+                document.getElementById("resLabel").innerText = bestLabel.toUpperCase();
+                document.getElementById("resLabel").style.color = bestLabel.toLowerCase().includes("knock") ? "#ff4444" : "#4caf50";
                 document.getElementById("resConf").innerText = `Confidence: ${(bestScore * 100).toFixed(1)}%`;
                 document.getElementById("status").innerText = "Analysis Complete.";
-            } catch (err) { 
-                console.error("Analysis Error:", err); 
-            }
+            } catch (err) { console.error(err); }
         }
 
         function sendCmd(cmd) {
             if (audioCtx.state === 'suspended') audioCtx.resume();
-            if (ws && ws.readyState === 1) {
-                ws.send(cmd);
-                console.log("Command sent: " + cmd);
-            } else {
-                console.log("Wait for connection...");
-            }
+            if (ws && ws.readyState === 1) ws.send(cmd);
         }
 
-        // Boot up
         init();
     </script>
 </body>
