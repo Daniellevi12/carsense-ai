@@ -7,9 +7,10 @@
     
     <script>
         WebAssembly.instantiateStreaming = false; 
+        console.log("🛠️ WASM Streaming Disabled (to bypass MIME error)");
     </script>
 
-    <script src="edge-impulse-standalone.js?v=15"></script>
+    <script src="edge-impulse-standalone.js?v=20"></script>
     
     <style>
         body { background: #0f0f0f; color: #e0e0e0; font-family: 'Segoe UI', sans-serif; text-align: center; padding: 20px; }
@@ -50,40 +51,40 @@
 
         async function init() {
             const statusLabel = document.getElementById("status");
-            console.log("🚀 Starting AI Boot Sequence...");
+            console.log("🚀 Manual Boot Sequence Started...");
 
             const checkLibrary = setInterval(async () => {
                 if (typeof EdgeImpulseClassifier !== 'undefined') {
                     clearInterval(checkLibrary);
-                    console.log("✅ EdgeImpulseClassifier found!");
+                    console.log("✅ EdgeImpulseClassifier found in memory!");
                     
                     try {
                         classifier = new EdgeImpulseClassifier();
                         
-                        // Force the path to your .dat file
+                        // Path from your image_6bc283.png
                         classifier.wasmBinaryFile = 'edge-impulse-standalone.wasm.dat';
                         
-                        console.log("⏳ Running classifier.init(). This may take 5 seconds...");
+                        console.log("⏳ Running classifier.init(). This takes a few seconds...");
                         await classifier.init();
                         
-                        console.log("✅ AI System Online!");
+                        console.log("✅ SUCCESS: AI System is Online!");
                         statusLabel.innerText = "AI System Online";
                         statusLabel.style.color = "#4caf50";
                         
                         connect();
                     } catch (e) {
-                        statusLabel.innerText = "Init Failed - Check Console";
-                        console.error("❌ WASM Boot Error:", e);
+                        statusLabel.innerText = "Init Failed - See Console";
+                        console.error("❌ CRITICAL BOOT ERROR:", e);
                     }
                 } else {
-                    console.log("⏲️ Waiting for library to load...");
+                    console.log("⏲️ Still waiting for the JS file to finish loading...");
                 }
             }, 500);
         }
 
         function connect() {
             ws = new WebSocket("wss://esp32serverproject2.onrender.com/?type=Browser");
-            ws.onopen = () => console.log("✅ Connected to WebSocket");
+            ws.onopen = () => console.log("✅ Connected to Render WebSocket");
             ws.onmessage = async (e) => {
                 const data = JSON.parse(e.data);
                 if (data.audioData) {
@@ -93,7 +94,10 @@
                     analyzeAudio(data.audioData);
                 }
             };
-            ws.onclose = () => setTimeout(connect, 3000);
+            ws.onclose = () => {
+                console.log("📡 Server disconnected. Reconnecting...");
+                setTimeout(connect, 3000);
+            };
         }
 
         async function analyzeAudio(url) {
@@ -117,14 +121,20 @@
                 document.getElementById("resLabel").style.color = bestLabel.toLowerCase().includes("knock") ? "#ff4444" : "#4caf50";
                 document.getElementById("resConf").innerText = `Confidence: ${(bestScore * 100).toFixed(1)}%`;
                 document.getElementById("status").innerText = "Analysis Complete.";
-            } catch (err) { console.error(err); }
+            } catch (err) { console.error("❌ Analysis Error:", err); }
         }
 
         function sendCmd(cmd) {
             if (audioCtx.state === 'suspended') audioCtx.resume();
-            if (ws && ws.readyState === 1) ws.send(cmd);
+            if (ws && ws.readyState === 1) {
+                ws.send(cmd);
+                console.log("📤 Command Sent: " + cmd);
+            } else {
+                console.log("⚠️ Not connected yet...");
+            }
         }
 
+        // Start the process
         init();
     </script>
 </body>
