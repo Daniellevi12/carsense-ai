@@ -9,7 +9,7 @@
         WebAssembly.instantiateStreaming = false; 
     </script>
 
-    <script src="edge-impulse-standalone.js?v=7"></script>
+    <script src="edge-impulse-standalone.js?v=10"></script>
     
     <style>
         body { background: #0f0f0f; color: #e0e0e0; font-family: 'Segoe UI', sans-serif; text-align: center; padding: 20px; }
@@ -50,33 +50,43 @@
 
         async function init() {
             const statusLabel = document.getElementById("status");
+            console.log("🚀 Starting AI Boot Sequence...");
+
             const checkLibrary = setInterval(async () => {
                 if (typeof EdgeImpulseClassifier !== 'undefined') {
                     clearInterval(checkLibrary);
+                    console.log("✅ EdgeImpulseClassifier found!");
+                    
                     try {
-                        console.log("Found library, attempting init...");
                         classifier = new EdgeImpulseClassifier();
                         
-                        // Ensure it looks for the .dat file
+                        // Force the path to your .dat file
                         classifier.wasmBinaryFile = 'edge-impulse-standalone.wasm.dat';
                         
+                        console.log("⏳ Running classifier.init()...");
                         await classifier.init();
                         
-                        console.log("Init success!");
+                        console.log("✅ AI System Online!");
                         statusLabel.innerText = "AI System Online";
                         statusLabel.style.color = "#4caf50";
+                        
                         connect();
                     } catch (e) {
-                        statusLabel.innerText = "AI Init Failed (Check Console)";
-                        console.error("Initialization Error:", e);
+                        statusLabel.innerText = "Init Failed - Check Console";
+                        console.error("❌ WASM Boot Error:", e);
                     }
+                } else {
+                    console.log("⏲️ Waiting for library to load...");
                 }
-            }, 300);
+            }, 500);
         }
 
         function connect() {
+            // Your specific Render server URL
             ws = new WebSocket("wss://esp32serverproject2.onrender.com/?type=Browser");
-            ws.onopen = () => console.log("Connected to WebSocket");
+            
+            ws.onopen = () => console.log("✅ Connected to Render WebSocket");
+            
             ws.onmessage = async (e) => {
                 const data = JSON.parse(e.data);
                 if (data.audioData) {
@@ -86,7 +96,11 @@
                     analyzeAudio(data.audioData);
                 }
             };
-            ws.onclose = () => setTimeout(connect, 3000);
+
+            ws.onclose = () => {
+                console.log("❌ Connection lost. Reconnecting...");
+                setTimeout(connect, 3000);
+            };
         }
 
         async function analyzeAudio(url) {
@@ -105,18 +119,28 @@
                         bestLabel = label;
                     }
                 }
-                document.getElementById("resLabel").innerText = bestLabel.toUpperCase();
-                document.getElementById("resLabel").style.color = bestLabel.toLowerCase().includes("knock") ? "#ff4444" : "#4caf50";
+                
+                const lbl = document.getElementById("resLabel");
+                lbl.innerText = bestLabel.toUpperCase();
+                lbl.style.color = bestLabel.toLowerCase().includes("knock") ? "#ff4444" : "#4caf50";
                 document.getElementById("resConf").innerText = `Confidence: ${(bestScore * 100).toFixed(1)}%`;
                 document.getElementById("status").innerText = "Analysis Complete.";
-            } catch (err) { console.error(err); }
+            } catch (err) { 
+                console.error("Analysis Error:", err); 
+            }
         }
 
         function sendCmd(cmd) {
             if (audioCtx.state === 'suspended') audioCtx.resume();
-            if (ws && ws.readyState === 1) ws.send(cmd);
+            if (ws && ws.readyState === 1) {
+                ws.send(cmd);
+                console.log("Command sent: " + cmd);
+            } else {
+                console.log("Wait for connection...");
+            }
         }
 
+        // Boot up
         init();
     </script>
 </body>
