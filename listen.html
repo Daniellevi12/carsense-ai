@@ -4,7 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CarSense AI - Pro Diagnostic</title>
-    <script src="edge-impulse-standalone.js?v=5"></script>
+    
+    <script>
+        // This forces the browser to treat the file as raw data, ignoring the .dat extension error
+        WebAssembly.instantiateStreaming = false; 
+    </script>
+
+    <script src="edge-impulse-standalone.js?v=6"></script>
+    
     <style>
         body { background: #0f0f0f; color: #e0e0e0; font-family: 'Segoe UI', sans-serif; text-align: center; padding: 20px; }
         .box { background: #1a1a1a; max-width: 450px; margin: auto; padding: 30px; border-radius: 24px; border: 1px solid #333; box-shadow: 0 10px 40px rgba(0,0,0,0.6); }
@@ -22,11 +29,14 @@
     <div class="box">
         <h2 style="margin-top:0;">🚗 CARSENSE AI</h2>
         <span id="status">Waking up AI Brain...</span>
+        
         <div class="btn-group">
             <button id="start" onclick="sendCmd('START')">START SESSION</button>
             <button id="stop" onclick="sendCmd('STOP')">STOP</button>
         </div>
+        
         <audio id="player" controls crossorigin="anonymous"></audio>
+        
         <div class="label-container">
             <span style="font-size: 0.7em; color: #888; letter-spacing: 2px; font-weight: bold;">LIVE DIAGNOSIS</span>
             <span id="resLabel" class="label">STANDBY</span>
@@ -45,16 +55,21 @@
                 if (typeof EdgeImpulseClassifier !== 'undefined') {
                     clearInterval(checkLibrary);
                     try {
+                        console.log("Found library, attempting init...");
                         classifier = new EdgeImpulseClassifier();
-                        // This forces the library to use the exact filename in your repo
+                        
+                        // Ensure it looks for the .dat file
                         classifier.wasmBinaryFile = 'edge-impulse-standalone.wasm.dat';
+                        
                         await classifier.init();
+                        
+                        console.log("Init success!");
                         statusLabel.innerText = "AI System Online";
                         statusLabel.style.color = "#4caf50";
                         connect();
                     } catch (e) {
-                        statusLabel.innerText = "AI Brain Load Failed";
-                        console.error(e);
+                        statusLabel.innerText = "AI Init Failed (Check Console)";
+                        console.error("Initialization Error:", e);
                     }
                 }
             }, 300);
@@ -62,6 +77,7 @@
 
         function connect() {
             ws = new WebSocket("wss://esp32serverproject2.onrender.com/?type=Browser");
+            ws.onopen = () => console.log("Connected to WebSocket");
             ws.onmessage = async (e) => {
                 const data = JSON.parse(e.data);
                 if (data.audioData) {
@@ -93,7 +109,7 @@
                 document.getElementById("resLabel").innerText = bestLabel.toUpperCase();
                 document.getElementById("resLabel").style.color = bestLabel.toLowerCase().includes("knock") ? "#ff4444" : "#4caf50";
                 document.getElementById("resConf").innerText = `Confidence: ${(bestScore * 100).toFixed(1)}%`;
-                document.getElementById("status").innerText = "Analysis Complete.";
+                document.getElementById("status").innerText = "Diagnosis Complete.";
             } catch (err) { console.error(err); }
         }
 
