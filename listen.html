@@ -1,175 +1,125 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
-    <title>CarSense AI - Pro</title>
-    <script src="edge-impulse-standalone.js?v=1"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CarSense AI - Pro Diagnostic</title>
+    <script src="edge-impulse-standalone.js?v=2"></script>
     <style>
-        body {
-            background: #0f0f0f;
-            color: #e0e0e0;
-            font-family: 'Segoe UI', sans-serif;
-            text-align: center;
-            padding: 40px;
-        }
-        
-        .box {
-            background: #1a1a1a;
-            max-width: 450px;
-            margin: auto;
-            padding: 30px;
-            border-radius: 20px;
-            border: 1px solid #333;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-        }
-        
-        .label-container {
-            margin: 25px 0;
-            padding: 20px;
-            background: #252525;
-            border-radius: 12px;
-            border-left: 5px solid #007bff;
-        }
-        
-        .label {
-            font-size: 2.2em;
-            color: #007bff;
-            display: block;
-            font-weight: bold;
-            transition: color 0.3s;
-        }
-        
-        button {
-            padding: 12px 24px;
-            margin: 10px;
-            border-radius: 8px;
-            border: none;
-            cursor: pointer;
-            font-weight: bold;
-            transition: 0.2s;
-        }
-        
-        #start {
-            background: #ff4444;
-            color: white;
-        }
-        
-        #stop {
-            background: #007bff;
-            color: white;
-        }
-        
-        #status {
-            color: #888;
-            font-style: italic;
-        }
-        
-        audio {
-            width: 100%;
-            margin-top: 20px;
-            filter: invert(100%);
-        }
+        body { background: #0f0f0f; color: #e0e0e0; font-family: 'Segoe UI', sans-serif; text-align: center; padding: 20px; }
+        .box { background: #1a1a1a; max-width: 450px; margin: auto; padding: 30px; border-radius: 24px; border: 1px solid #333; box-shadow: 0 10px 40px rgba(0,0,0,0.6); }
+        .label-container { margin: 25px 0; padding: 25px; background: #222; border-radius: 16px; border-bottom: 4px solid #007bff; }
+        .label { font-size: 2.5em; color: #007bff; display: block; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; }
+        .btn-group { display: flex; justify-content: center; gap: 15px; margin-bottom: 20px; }
+        button { flex: 1; padding: 15px; border-radius: 12px; border: none; cursor: pointer; font-weight: bold; font-size: 1em; transition: 0.3s; }
+        #start { background: #ff4444; color: white; }
+        #start:hover { background: #ff6666; transform: scale(1.02); }
+        #stop { background: #333; color: #aaa; border: 1px solid #444; }
+        #stop:hover { background: #444; color: white; }
+        #status { color: #888; font-style: italic; margin-bottom: 10px; display: block; height: 20px; }
+        audio { width: 100%; margin-top: 10px; filter: invert(90%) hue-rotate(180deg); }
+        .conf-text { color: #666; font-size: 0.9em; margin-top: 5px; display: block; }
     </style>
 </head>
 
 <body>
     <div class="box">
-        <h2>🚗 CARSENSE AI</h2>
-        <p id="status">Loading Brain from GitHub...</p>
+        <h2 style="margin-top:0;">🚗 CARSENSE AI</h2>
+        <span id="status">Waking up AI Brain...</span>
 
-        <button id="start" onclick="sendCmd('START')">🔴 START</button>
-        <button id="stop" onclick="sendCmd('STOP')">🟦 STOP</button>
+        <div class="btn-group">
+            <button id="start" onclick="sendCmd('START')">START SESSION</button>
+            <button id="stop" onclick="sendCmd('STOP')">STOP</button>
+        </div>
 
         <audio id="player" controls crossorigin="anonymous"></audio>
 
         <div class="label-container">
-            <span style="font-size: 0.8em; color: #888; letter-spacing: 1px;">DIAGNOSIS RESULT</span>
-            <span id="resLabel" class="label">READY</span>
-            <span id="resConf" style="color: #aaa;">Confidence: 0%</span>
+            <span style="font-size: 0.7em; color: #888; letter-spacing: 2px; font-weight: bold;">LIVE DIAGNOSIS</span>
+            <span id="resLabel" class="label">STANDBY</span>
+            <span id="resConf" class="conf-text">Confidence: 0%</span>
         </div>
     </div>
 
     <script>
         let classifier;
         let ws;
-        let audioCtx = new(window.AudioContext || window.webkitAudioContext)();
+        let audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
-        // 1. ROBUST INIT FOR GITHUB PAGES
+        // 1. BOOT SEQUENCE
         async function init() {
-    const status = document.getElementById("status");
-    
-    const check = setInterval(async () => {
-        if (typeof EdgeImpulseClassifier !== 'undefined') {
-            clearInterval(check);
-            try {
-                // FORCE the classifier to find the .dat file
-                classifier = new EdgeImpulseClassifier();
-                
-                // This line ensures it doesn't look for the old .wasm name
-                classifier.wasmBinaryFile = 'edge-impulse-standalone.wasm.dat'; 
-                
-                await classifier.init();
-                status.innerText = "AI Online. Connected.";
-                connect();
-            } catch (e) {
-                status.innerText = "Error: AI Brain (WASM) blocked.";
-                console.error("WASM Init Error:", e);
-            }
+            const statusLabel = document.getElementById("status");
+            
+            // Check for the JS library every 200ms
+            const checkLibrary = setInterval(async () => {
+                if (typeof EdgeImpulseClassifier !== 'undefined') {
+                    clearInterval(checkLibrary);
+                    console.log("✅ AI Library Loaded");
+                    try {
+                        classifier = new EdgeImpulseClassifier();
+                        
+                        // THIS IS THE CRITICAL LINE FOR GITHUB PAGES + .DAT FIX
+                        classifier.wasmBinaryFile = 'edge-impulse-standalone.wasm.dat';
+                        
+                        await classifier.init();
+                        statusLabel.innerText = "AI System Online";
+                        statusLabel.style.color = "#4caf50";
+                        connect(); // Connect to Render WebSocket
+                    } catch (e) {
+                        statusLabel.innerText = "Error: Brain File (.dat) not found";
+                        console.error("WASM Load Fail:", e);
+                    }
+                }
+            }, 200);
         }
-    }, 200);
-}
 
-        // 2. CONNECT TO YOUR ESP32
+        // 2. WEBSOCKET CONNECTION
         function connect() {
             ws = new WebSocket("wss://esp32serverproject2.onrender.com/?type=Browser");
-            ws.onmessage = async(e) => {
+            
+            ws.onopen = () => { console.log("Connected to Render Server"); };
+            
+            ws.onmessage = async (e) => {
                 const data = JSON.parse(e.data);
                 if (data.audioData) {
-                    document.getElementById("status").innerText = "Analyzing audio...";
+                    document.getElementById("status").innerText = "Sound detected! Analyzing...";
                     const player = document.getElementById("player");
                     player.src = data.audioData;
                     player.play();
-                    analyzeWav(data.audioData);
+                    analyzeAudio(data.audioData);
                 }
             };
-            ws.onclose = () => setTimeout(connect, 3000);
+
+            ws.onclose = () => {
+                document.getElementById("status").innerText = "Server Offline... Reconnecting";
+                setTimeout(connect, 3000);
+            };
         }
 
-        // 3. ANALYZE
-        async function analyzeWav(url) {
+        // 3. AI ANALYSIS
+        async function analyzeAudio(url) {
             if (!classifier || !classifier.properties) return;
+
             try {
                 const response = await fetch(url);
                 const arrayBuffer = await response.arrayBuffer();
                 const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
-                let rawData = audioBuffer.getChannelData(0);
+                const rawData = audioBuffer.getChannelData(0);
 
-                // Auto-size window
-                const props = classifier.properties.sensor_configs[0].sensors[0];
-                const windowSize = Math.floor(classifier.properties.sensor_configs[0].sensors[0].interval_ms * props.sample_rate / 1000);
+                // Run the classification
+                const result = await classifier.classify(rawData);
+                
+                let bestLabel = "Uncertain";
+                let bestScore = 0;
 
-                // Classify
-                let bestScore = -1;
-                let bestLabel = "Normal";
-
-                // Scan the audio file
-                for (let i = 0; i < rawData.length - windowSize; i += Math.floor(windowSize / 2)) {
-                    let chunk = rawData.slice(i, i + windowSize);
-                    const result = await classifier.classify(chunk);
-
-                    for (const [label, score] of Object.entries(result.results)) {
-                        if (!label.toLowerCase().includes("noise")) {
-                            if (score > bestScore) {
-                                bestScore = score;
-                                bestLabel = label;
-                            }
-                        }
+                for (const [label, score] of Object.entries(result.results)) {
+                    if (score > bestScore) {
+                        bestScore = score;
+                        bestLabel = label;
                     }
                 }
 
-                updateUI(bestScore < 0.65 ? "Normal Engine" : bestLabel, bestScore < 0.65 ? 0.90 : bestScore);
-
+                updateUI(bestLabel, bestScore);
             } catch (err) {
                 console.error("AI Analysis Error:", err);
             }
@@ -177,20 +127,29 @@
 
         function updateUI(label, confidence) {
             const lbl = document.getElementById("resLabel");
-            lbl.innerText = label.toUpperCase();
+            const conf = document.getElementById("resConf");
+            
+            lbl.innerText = label;
+            // Red for Knocks, Green for everything else
             lbl.style.color = (label.toLowerCase().includes("knock")) ? "#ff4444" : "#4caf50";
-            document.getElementById("resConf").innerText = `Confidence: ${(confidence * 100).toFixed(1)}%`;
-            document.getElementById("status").innerText = "Analysis Complete.";
+            conf.innerText = `Confidence: ${(confidence * 100).toFixed(1)}%`;
+            document.getElementById("status").innerText = "Diagnosis Complete.";
         }
 
         function sendCmd(cmd) {
+            // Browsers block audio until a user clicks a button
             if (audioCtx.state === 'suspended') audioCtx.resume();
-            if (ws && ws.readyState === 1) ws.send(cmd);
+            
+            if (ws && ws.readyState === 1) {
+                ws.send(cmd);
+                document.getElementById("status").innerText = "Command Sent: " + cmd;
+            } else {
+                alert("Not connected to server. Wait a moment.");
+            }
         }
 
+        // START BOOT
         init();
     </script>
 </body>
-
-
 </html>
