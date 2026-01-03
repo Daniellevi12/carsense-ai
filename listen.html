@@ -4,122 +4,68 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CarSense AI - Pro Diagnostic</title>
-    
-    <script>
-        // Force the browser to use a safer loading method for WASM
-        WebAssembly.instantiateStreaming = false; 
-        console.log("🛠️ Engine Safety Mode: ON");
-    </script>
-    
-
-    <script src="engine.js?v=999"></script>
-    
+    <script src="engine.js"></script>
     <style>
-        body { background: #0f0f0f; color: #e0e0e0; font-family: 'Segoe UI', sans-serif; text-align: center; padding: 20px; }
-        .box { background: #1a1a1a; max-width: 450px; margin: auto; padding: 30px; border-radius: 24px; border: 1px solid #333; box-shadow: 0 10px 40px rgba(0,0,0,0.6); }
-        .label-container { margin: 25px 0; padding: 25px; background: #222; border-radius: 16px; border-bottom: 4px solid #007bff; }
-        .label { font-size: 2.5em; color: #007bff; display: block; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; }
-        .btn-group { display: flex; justify-content: center; gap: 15px; margin-bottom: 20px; }
-        button { flex: 1; padding: 15px; border-radius: 12px; border: none; cursor: pointer; font-weight: bold; font-size: 1em; transition: 0.3s; }
-        #start { background: #ff4444; color: white; }
-        #stop { background: #333; color: #aaa; border: 1px solid #444; }
-        #status { color: #888; font-style: italic; margin-bottom: 10px; display: block; height: 20px; }
-        audio { width: 100%; margin-top: 10px; filter: invert(90%) hue-rotate(180deg); }
+        body { background: #0f0f0f; color: #e0e0e0; font-family: sans-serif; text-align: center; padding: 20px; }
+        .box { background: #1a1a1a; max-width: 400px; margin: auto; padding: 20px; border-radius: 15px; border: 1px solid #333; }
+        .label { font-size: 2em; color: #007bff; font-weight: bold; display: block; margin: 20px 0; }
+        #status { font-size: 0.9em; color: #666; }
     </style>
 </head>
 <body>
     <div class="box">
-        <h2 style="margin-top:0;">🚗 CARSENSE AI</h2>
-        <span id="status">Waking up Engine...</span>
-        <div class="btn-group">
-            <button id="start" onclick="sendCmd('START')">START SESSION</button>
-            <button id="stop" onclick="sendCmd('STOP')">STOP</button>
-        </div>
-        <audio id="player" controls crossorigin="anonymous"></audio>
-        <div class="label-container">
-            <span style="font-size: 0.7em; color: #888; letter-spacing: 2px; font-weight: bold;">LIVE DIAGNOSIS</span>
-            <span id="resLabel" class="label">STANDBY</span>
-            <span id="resConf" style="color: #666; font-size: 0.9em;">Confidence: 0%</span>
-        </div>
+        <h2>CARSENSE AI</h2>
+        <div id="status">Loading Brain...</div>
+        <div class="label" id="resLabel">STANDBY</div>
+        <button id="startBtn" onclick="startInference()" style="padding:10px 20px; border-radius:8px; cursor:pointer;">START LISTENING</button>
     </div>
 
     <script>
         let classifier;
         let ws;
-        let audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
-        async function init() {
-            const statusLabel = document.getElementById("status");
-            console.log("🚀 Booting AI Engine...");
-
-            const checkLibrary = setInterval(async () => {
-                if (typeof EdgeImpulseClassifier !== 'undefined') {
-                    clearInterval(checkLibrary);
-                    console.log("✅ Engine Logic Loaded!");
-                    
-                    try {
-                        classifier = new EdgeImpulseClassifier();
-                        // This MUST match the file in your GitHub repo
-                        classifier.wasmBinaryFile = 'edge-impulse-standalone.wasm.dat';
-                        
-                        await classifier.init();
-                        console.log("✅ AI ONLINE");
-                        statusLabel.innerText = "AI System Online";
-                        statusLabel.style.color = "#4caf50";
-                        connect();
-                    } catch (e) {
-                        statusLabel.innerText = "Engine Error";
-                        console.error("❌ WASM Error:", e);
-                    }
-                } else {
-                    console.log("⏲️ Waiting for engine.js...");
-                }
-            }, 500);
-        }
-
-        function connect() {
-            ws = new WebSocket("wss://esp32serverproject2.onrender.com/?type=Browser");
-            ws.onopen = () => console.log("✅ Connection Ready");
-            ws.onmessage = async (e) => {
-                const data = JSON.parse(e.data);
-                if (data.audioData) {
-                    document.getElementById("status").innerText = "Analyzing...";
-                    document.getElementById("player").src = data.audioData;
-                    document.getElementById("player").play();
-                    analyzeAudio(data.audioData);
-                }
-            };
-            ws.onclose = () => setTimeout(connect, 3000);
-        }
-
-        async function analyzeAudio(url) {
-            if (!classifier) return;
+        async function initAI() {
+            const status = document.getElementById('status');
+            
             try {
-                const response = await fetch(url);
-                const arrayBuffer = await response.arrayBuffer();
-                const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
-                const result = await classifier.classify(audioBuffer.getChannelData(0));
+                // STEP 1: Manually fetch the WASM as binary data 
+                // This "steals" the approach from the mobile-client to bypass MIME errors
+                status.innerText = "Downloading model binary...";
+                const response = await fetch('edge-impulse-standalone.wasm.dat');
+                const wasmBuffer = await response.arrayBuffer();
+
+                // STEP 2: Initialize the Edge Impulse library
+                // We pass the buffer directly so it doesn't try to fetch it again
+                classifier = new EdgeImpulseClassifier();
                 
-                let bestLabel = "Normal";
-                let bestScore = 0;
-                for (const [label, score] of Object.entries(result.results)) {
-                    if (score > bestScore) {
-                        bestScore = score;
-                        bestLabel = label;
-                    }
-                }
-                document.getElementById("resLabel").innerText = bestLabel.toUpperCase();
-                document.getElementById("resConf").innerText = `Confidence: ${(bestScore * 100).toFixed(1)}%`;
-            } catch (err) { console.error(err); }
+                // We override the internal loader to use our downloaded buffer
+                Module['wasmBinary'] = wasmBuffer;
+                
+                await classifier.init();
+                
+                status.innerText = "System Ready ✅";
+                status.style.color = "#4caf50";
+                connectWS();
+            } catch (err) {
+                console.error(err);
+                status.innerText = "Error: " + err.message;
+            }
         }
 
-        function sendCmd(cmd) {
-            if (audioCtx.state === 'suspended') audioCtx.resume();
-            if (ws && ws.readyState === 1) ws.send(cmd);
+        function connectWS() {
+            ws = new WebSocket("wss://esp32serverproject2.onrender.com/?type=Browser");
+            ws.onmessage = (e) => {
+                // Here we would feed ESP32 data into classifier.classify()
+                console.log("Data from ESP32:", e.data);
+            };
         }
 
-        init();
+        function startInference() {
+            if (ws && ws.readyState === 1) ws.send("START");
+        }
+
+        // Wait for engine.js to load, then trigger our manual init
+        window.onload = initAI;
     </script>
 </body>
 </html>
-
