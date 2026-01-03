@@ -6,17 +6,12 @@
     <title>CarSense AI - Pro Diagnostic</title>
     
     <script>
+        // Force the browser to use a safer loading method for WASM
         WebAssembly.instantiateStreaming = false; 
-        console.log("🛠️ WASM Streaming Disabled (to bypass MIME error)");
+        console.log("🛠️ Engine Safety Mode: ON");
     </script>
 
-    <script src="brain-logic.js?v=1"></script>
-
-    <script>
-        // Force the browser to treat all WASM as raw data to avoid MIME errors
-        window.WebAssembly.instantiateStreaming = undefined;
-        console.log("🛠️ MIME-Fix Active");
-    </script>
+    <script src="engine.js?v=999"></script>
     
     <style>
         body { background: #0f0f0f; color: #e0e0e0; font-family: 'Segoe UI', sans-serif; text-align: center; padding: 20px; }
@@ -34,15 +29,12 @@
 <body>
     <div class="box">
         <h2 style="margin-top:0;">🚗 CARSENSE AI</h2>
-        <span id="status">Waking up AI Brain...</span>
-        
+        <span id="status">Waking up Engine...</span>
         <div class="btn-group">
             <button id="start" onclick="sendCmd('START')">START SESSION</button>
             <button id="stop" onclick="sendCmd('STOP')">STOP</button>
         </div>
-        
         <audio id="player" controls crossorigin="anonymous"></audio>
-        
         <div class="label-container">
             <span style="font-size: 0.7em; color: #888; letter-spacing: 2px; font-weight: bold;">LIVE DIAGNOSIS</span>
             <span id="resLabel" class="label">STANDBY</span>
@@ -57,53 +49,46 @@
 
         async function init() {
             const statusLabel = document.getElementById("status");
-            console.log("🚀 Manual Boot Sequence Started...");
+            console.log("🚀 Booting AI Engine...");
 
             const checkLibrary = setInterval(async () => {
                 if (typeof EdgeImpulseClassifier !== 'undefined') {
                     clearInterval(checkLibrary);
-                    console.log("✅ EdgeImpulseClassifier found in memory!");
+                    console.log("✅ Engine Logic Loaded!");
                     
                     try {
                         classifier = new EdgeImpulseClassifier();
-                        
-                        // Path from your image_6bc283.png
+                        // This MUST match the file in your GitHub repo
                         classifier.wasmBinaryFile = 'edge-impulse-standalone.wasm.dat';
                         
-                        console.log("⏳ Running classifier.init(). This takes a few seconds...");
                         await classifier.init();
-                        
-                        console.log("✅ SUCCESS: AI System is Online!");
+                        console.log("✅ AI ONLINE");
                         statusLabel.innerText = "AI System Online";
                         statusLabel.style.color = "#4caf50";
-                        
                         connect();
                     } catch (e) {
-                        statusLabel.innerText = "Init Failed - See Console";
-                        console.error("❌ CRITICAL BOOT ERROR:", e);
+                        statusLabel.innerText = "Engine Error";
+                        console.error("❌ WASM Error:", e);
                     }
                 } else {
-                    console.log("⏲️ Still waiting for the JS file to finish loading...");
+                    console.log("⏲️ Waiting for engine.js...");
                 }
             }, 500);
         }
 
         function connect() {
             ws = new WebSocket("wss://esp32serverproject2.onrender.com/?type=Browser");
-            ws.onopen = () => console.log("✅ Connected to Render WebSocket");
+            ws.onopen = () => console.log("✅ Connection Ready");
             ws.onmessage = async (e) => {
                 const data = JSON.parse(e.data);
                 if (data.audioData) {
-                    document.getElementById("status").innerText = "Analyzing sound...";
+                    document.getElementById("status").innerText = "Analyzing...";
                     document.getElementById("player").src = data.audioData;
                     document.getElementById("player").play();
                     analyzeAudio(data.audioData);
                 }
             };
-            ws.onclose = () => {
-                console.log("📡 Server disconnected. Reconnecting...");
-                setTimeout(connect, 3000);
-            };
+            ws.onclose = () => setTimeout(connect, 3000);
         }
 
         async function analyzeAudio(url) {
@@ -122,28 +107,17 @@
                         bestLabel = label;
                     }
                 }
-                
                 document.getElementById("resLabel").innerText = bestLabel.toUpperCase();
-                document.getElementById("resLabel").style.color = bestLabel.toLowerCase().includes("knock") ? "#ff4444" : "#4caf50";
                 document.getElementById("resConf").innerText = `Confidence: ${(bestScore * 100).toFixed(1)}%`;
-                document.getElementById("status").innerText = "Analysis Complete.";
-            } catch (err) { console.error("❌ Analysis Error:", err); }
+            } catch (err) { console.error(err); }
         }
 
         function sendCmd(cmd) {
             if (audioCtx.state === 'suspended') audioCtx.resume();
-            if (ws && ws.readyState === 1) {
-                ws.send(cmd);
-                console.log("📤 Command Sent: " + cmd);
-            } else {
-                console.log("⚠️ Not connected yet...");
-            }
+            if (ws && ws.readyState === 1) ws.send(cmd);
         }
 
-        // Start the process
         init();
     </script>
 </body>
 </html>
-
-
