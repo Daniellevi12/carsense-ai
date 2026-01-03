@@ -6,11 +6,10 @@
     <title>CarSense AI - Pro Diagnostic</title>
     
     <script>
-        // This forces the browser to treat the file as raw data, ignoring the .dat extension error
         WebAssembly.instantiateStreaming = false; 
     </script>
 
-    <script src="edge-impulse-standalone.js?v=6"></script>
+    <script src="edge-impulse-standalone.js?v=7"></script>
     
     <style>
         body { background: #0f0f0f; color: #e0e0e0; font-family: 'Segoe UI', sans-serif; text-align: center; padding: 20px; }
@@ -109,7 +108,7 @@
                 document.getElementById("resLabel").innerText = bestLabel.toUpperCase();
                 document.getElementById("resLabel").style.color = bestLabel.toLowerCase().includes("knock") ? "#ff4444" : "#4caf50";
                 document.getElementById("resConf").innerText = `Confidence: ${(bestScore * 100).toFixed(1)}%`;
-                document.getElementById("status").innerText = "Diagnosis Complete.";
+                document.getElementById("status").innerText = "Analysis Complete.";
             } catch (err) { console.error(err); }
         }
 
