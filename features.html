@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>CarSense — תכונות</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+
+<body class="bg-dark text-white">
+
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="index.html">CarSense</a>
+
+            <!-- Login button next to logo -->
+            <button id="loginBtn" class="btn btn-outline-light ms-2" style="margin-right: 20px;">Login</button>
+            <button id="logoutBtn" class="btn btn-outline-light ms-2"
+                style="display:none; margin-right: 20px">Logout</button>
+
+            <div class="collapse navbar-collapse">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item"><a class="nav-link" href="demo.html">Demo</a></li>
+                    <li class="nav-item"><a class="nav-link" href="features.html">Features</a></li>
+                    <li class="nav-item"><a class="nav-link" href="listen.html">Listen</a></li>
+                    <li class="nav-item"><a class="nav-link" href="scans.html">Scans</a></li>
+                    <li class="nav-item"><a class="nav-link" href="cars.html">Cars</a></li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+    <!-- Hero Section -->
+    <div class="container text-center my-5">
+        <h1 class="display-4 fw-bold mb-4">תכונות CarSense</h1>
+        <p class="lead mb-4">מערכת חכמה לזיהוי תקלות ברכב בזמן אמת באמצעות ניתוח רעשים וטכנולוגיות AI</p>
+        <hr class="border-light">
+    </div>
+
+    <!-- Features List -->
+    <div class="container mb-5">
+        <div class="row g-4"> <!-- g is gutter-->
+            <div class="col-md-6 col-lg-4">
+                <div class="card bg-secondary text-white h-100">
+                    <div class="card-body">
+                        <h5 class="card-title">זיהוי תקלות בזמן אמת</h5>
+                        <p class="card-text">מערכת CarSense מאזינה לרעשים חריגים ברכב ומתריעה מיידית על תקלות אפשריות
+                            במנוע, בלמים או מערכת ההילוכים.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6 col-lg-4">
+                <div class="card bg-secondary text-white h-100">
+                    <div class="card-body">
+                        <h5 class="card-title">קישור לסרטוני הדרכה</h5>
+                        <p class="card-text">CarSense מפנה לסרטונים מותאמים שמסבירים כיצד לטפל בבעיה בצורה בסיסית,
+                            לחיסכון בזמן ובמשאבים.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6 col-lg-4">
+                <div class="card bg-secondary text-white h-100">
+                    <div class="card-body">
+                        <h5 class="card-title">שמירה היסטורית</h5>
+                        <p class="card-text">כל התקלות והרכבים נשמרים בהיסטוריה אישית, כך שמוסכניקים וטכנאים יכולים לגשת
+                            למידע בזמן אמת ולתעד תקלות חוזרות.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6 col-lg-4">
+                <div class="card bg-secondary text-white h-100">
+                    <div class="card-body">
+                        <h5 class="card-title">ריבוי רכבים לכל משתמש</h5>
+                        <p class="card-text">ניתן להוסיף מספר רכבים לחשבון אחד, ולנטר כל רכב באופן עצמאי עם תיעוד ותקלות
+                            נפרדות.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6 col-lg-4">
+                <div class="card bg-secondary text-white h-100">
+                    <div class="card-body">
+                        <h5 class="card-title">AI לזיהוי רעשים חריגים</h5>
+                        <p class="card-text">אלגוריתמים של למידת מכונה מנתחים את הרעשים מהרכב ומזהים סוג תקלה באופן
+                            אוטונומי, ללא צורך באבחון ידני.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6 col-lg-4">
+                <div class="card bg-secondary text-white h-100">
+                    <div class="card-body">
+                        <h5 class="card-title">פתרון נייד ומתקדם</h5>
+                        <p class="card-text">CarSense פועל באופן עצמאי ואינו דורש חיבור למחשב הרכב או טלפון חכם, מתאים
+                            גם לתנאי שטח מורכבים.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Project Explanation -->
+    <div class="container mb-5">
+        <div class="card bg-secondary text-white">
+            <div class="card-body">
+                <h3 class="card-title mb-3">CarSense — הסבר על הפרויקט</h3>
+                <p class="card-text">
+                    CarSense הוא פרויקט לפיתוח מערכת חכמה לזיהוי תקלות ברכב באמצעות ניתוח רעשים. מדובר במכשיר קטן המותקן
+                    ברכב, הכולל מיקרופונים ורכיבי עיבוד אות, המאפשרים לו "להאזין" לקולות שמפיק הרכב במהלך הנסיעה או
+                    ההפעלה. באמצעות אלגוריתמים מתקדמים של למידת מכונה (Machine Learning), המערכת מסוגלת לזהות רעשים
+                    חריגים, לקבוע האם מדובר בתקלה, ולסווג את סוג הבעיה – כגון תקלה במנוע, בבלמים או במערכת ההילוכים.
+                </p>
+                <p class="card-text">
+                    CarSense לא רק מציינת את מיקום וסוג התקלה, אלא גם מקושרת למערכת אינטרנטית המפנה לסרטון הסבר מותאם,
+                    המסביר כיצד ניתן לטפל בבעיה באופן בסיסי – וכך לחסוך זמן ולשפר את המענה בשטח. היתרון המרכזי הוא
+                    הפעולה האוטונומית והיכולת להתאים לסביבות מורכבות, גם כאשר אין מומחה זמין.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script type="module" src="carsense.js"></script>
+
+</body>
+
+</html>

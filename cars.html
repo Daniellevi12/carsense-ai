@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CarSense — רכבים שלי</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+
+<body class="bg-dark text-white text-center">
+  <!-- Navbar -->
+  <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4">
+    <div class="container-fluid">
+      <a class="navbar-brand" href="index.html">CarSense</a>
+
+      <button id="loginBtn" class="btn btn-outline-light ms-2" style="margin-right: 20px;">Login</button>
+      <button id="logoutBtn" class="btn btn-outline-light ms-2" style="display:none; margin-right: 20px">Logout</button>
+
+      <div class="collapse navbar-collapse">
+        <ul class="navbar-nav me-auto">
+          <li class="nav-item"><a class="nav-link" href="demo.html">Demo</a></li>
+          <li class="nav-item"><a class="nav-link" href="features.html">Features</a></li>
+          <li class="nav-item"><a class="nav-link" href="listen.html">Listen</a></li>
+          <li class="nav-item"><a class="nav-link" href="scans.html">Scans</a></li>
+          <li class="nav-item"><a class="nav-link" href="cars.html">Cars</a></li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+  <div class="container">
+    <h2 class="mb-4">הרכבים שלי</h2>
+
+    <!-- Container for car cards -->
+    <div id="carsContainer" class="row gy-4"></div>
+
+    <hr class="bg-light my-5">
+
+    <!-- Form to add a new car -->
+    <div class="bg-secondary bg-opacity-75 p-4 rounded">
+      <h3>הוסף רכב חדש</h3>
+      <div class="mb-3">
+        <input id="carMake" type="text" class="form-control" placeholder="יצרן (Make)">
+      </div>
+      <div class="mb-3">
+        <input id="carModel" type="text" class="form-control" placeholder="דגם (Model)">
+      </div>
+      <div class="mb-3">
+        <input id="carYear" type="text" class="form-control" placeholder="שנה">
+      </div>
+      <div class="mb-3">
+        <input id="carPlate" type="text" class="form-control" placeholder="לוחית רישוי">
+      </div>
+      <button id="addCarBtn" class="btn btn-light">הוסף רכב</button>
+    </div>
+  </div>
+
+  <script type="module" src="carsense.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+
+</html>

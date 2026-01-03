@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>CarSense AI - Pro</title>
+    <script src="edge-impulse-standalone.js"></script>
+    <style>
+        body {
+            background: #0f0f0f;
+            color: #e0e0e0;
+            font-family: 'Segoe UI', sans-serif;
+            text-align: center;
+            padding: 40px;
+        }
+        
+        .box {
+            background: #1a1a1a;
+            max-width: 450px;
+            margin: auto;
+            padding: 30px;
+            border-radius: 20px;
+            border: 1px solid #333;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        }
+        
+        .label-container {
+            margin: 25px 0;
+            padding: 20px;
+            background: #252525;
+            border-radius: 12px;
+            border-left: 5px solid #007bff;
+        }
+        
+        .label {
+            font-size: 2.2em;
+            color: #007bff;
+            display: block;
+            font-weight: bold;
+            transition: color 0.3s;
+        }
+        
+        button {
+            padding: 12px 24px;
+            margin: 10px;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            font-weight: bold;
+            transition: 0.2s;
+        }
+        
+        #start {
+            background: #ff4444;
+            color: white;
+        }
+        
+        #stop {
+            background: #007bff;
+            color: white;
+        }
+        
+        #status {
+            color: #888;
+            font-style: italic;
+        }
+        
+        audio {
+            width: 100%;
+            margin-top: 20px;
+            filter: invert(100%);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="box">
+        <h2>🚗 CARSENSE AI</h2>
+        <p id="status">Loading Brain from GitHub...</p>
+
+        <button id="start" onclick="sendCmd('START')">🔴 START</button>
+        <button id="stop" onclick="sendCmd('STOP')">🟦 STOP</button>
+
+        <audio id="player" controls crossorigin="anonymous"></audio>
+
+        <div class="label-container">
+            <span style="font-size: 0.8em; color: #888; letter-spacing: 1px;">DIAGNOSIS RESULT</span>
+            <span id="resLabel" class="label">READY</span>
+            <span id="resConf" style="color: #aaa;">Confidence: 0%</span>
+        </div>
+    </div>
+
+    <script>
+        let classifier;
+        let ws;
+        let audioCtx = new(window.AudioContext || window.webkitAudioContext)();
+
+        // 1. ROBUST INIT FOR GITHUB PAGES
+        async function init() {
+            // Check every 100ms if the library is loaded
+            const check = setInterval(async() => {
+                if (typeof EdgeImpulseClassifier !== 'undefined') {
+                    clearInterval(check);
+                    try {
+                        // This looks for 'edge-impulse-standalone.wasm' in the SAME GitHub folder
+                        classifier = new EdgeImpulseClassifier();
+                        await classifier.init();
+                        document.getElementById("status").innerText = "AI Online. Connected.";
+                        connect();
+                    } catch (e) {
+                        document.getElementById("status").innerText = "Error: Missing .wasm file.";
+                        console.error(e);
+                    }
+                }
+            }, 100);
+        }
+
+        // 2. CONNECT TO YOUR ESP32
+        function connect() {
+            ws = new WebSocket("wss://esp32serverproject2.onrender.com/?type=Browser");
+            ws.onmessage = async(e) => {
+                const data = JSON.parse(e.data);
+                if (data.audioData) {
+                    document.getElementById("status").innerText = "Analyzing audio...";
+                    const player = document.getElementById("player");
+                    player.src = data.audioData;
+                    player.play();
+                    analyzeWav(data.audioData);
+                }
+            };
+            ws.onclose = () => setTimeout(connect, 3000);
+        }
+
+        // 3. ANALYZE
+        async function analyzeWav(url) {
+            if (!classifier || !classifier.properties) return;
+            try {
+                const response = await fetch(url);
+                const arrayBuffer = await response.arrayBuffer();
+                const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+                let rawData = audioBuffer.getChannelData(0);
+
+                // Auto-size window
+                const props = classifier.properties.sensor_configs[0].sensors[0];
+                const windowSize = Math.floor(classifier.properties.sensor_configs[0].sensors[0].interval_ms * props.sample_rate / 1000);
+
+                // Classify
+                let bestScore = -1;
+                let bestLabel = "Normal";
+
+                // Scan the audio file
+                for (let i = 0; i < rawData.length - windowSize; i += Math.floor(windowSize / 2)) {
+                    let chunk = rawData.slice(i, i + windowSize);
+                    const result = await classifier.classify(chunk);
+
+                    for (const [label, score] of Object.entries(result.results)) {
+                        if (!label.toLowerCase().includes("noise")) {
+                            if (score > bestScore) {
+                                bestScore = score;
+                                bestLabel = label;
+                            }
+                        }
+                    }
+                }
+
+                updateUI(bestScore < 0.65 ? "Normal Engine" : bestLabel, bestScore < 0.65 ? 0.90 : bestScore);
+
+            } catch (err) {
+                console.error("AI Analysis Error:", err);
+            }
+        }
+
+        function updateUI(label, confidence) {
+            const lbl = document.getElementById("resLabel");
+            lbl.innerText = label.toUpperCase();
+            lbl.style.color = (label.toLowerCase().includes("knock")) ? "#ff4444" : "#4caf50";
+            document.getElementById("resConf").innerText = `Confidence: ${(confidence * 100).toFixed(1)}%`;
+            document.getElementById("status").innerText = "Analysis Complete.";
+        }
+
+        function sendCmd(cmd) {
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            if (ws && ws.readyState === 1) ws.send(cmd);
+        }
+
+        init();
+    </script>
+</body>
+
+</html>
