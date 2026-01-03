@@ -11,6 +11,12 @@
     </script>
 
     <script src="brain-logic.js?v=1"></script>
+
+    <script>
+        // Force the browser to treat all WASM as raw data to avoid MIME errors
+        window.WebAssembly.instantiateStreaming = undefined;
+        console.log("🛠️ MIME-Fix Active");
+    </script>
     
     <style>
         body { background: #0f0f0f; color: #e0e0e0; font-family: 'Segoe UI', sans-serif; text-align: center; padding: 20px; }
@@ -139,4 +145,5 @@
     </script>
 </body>
 </html>
+
 
